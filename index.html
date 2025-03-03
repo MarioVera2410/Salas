@@ -2,9 +2,8 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Sistema de Reservas con Admin</title>
+    <title>Sistema de Reservas Integrado</title>
     <style>
-        /* Estilos anteriores se mantienen igual */
         body {
             font-family: Arial, sans-serif;
             max-width: 600px;
@@ -22,6 +21,7 @@
             border-radius: 10px;
             padding: 15px;
             margin: 20px 0;
+            display: none;
         }
         
         .time-table {
@@ -80,10 +80,16 @@
             background-color: #3498db;
             color: white;
         }
+        
+        #fecha {
+            margin: 20px 0;
+        }
     </style>
 </head>
 <body>
-    <h1>Reserva Sala Grande</h1>
+    <h1>Sistema de Reserva con Fecha</h1>
+    
+    <input type="date" id="fecha">
     
     <div class="input-group">
         <input type="text" id="nombre" placeholder="Ingresa tu nombre">
@@ -92,23 +98,8 @@
     
     <div class="room">
         <h2 class="room-title">Sala de Juntas Principal</h2>
-        <table class="time-table">
-            <!-- Horarios igual que antes -->
-            <tr>
-                <td class="time-slot" data-hora="10">10am - 11am</td>
-                <td class="time-slot" data-hora="11">11am - 12pm</td>
-                <td class="time-slot" data-hora="12">12pm - 1pm</td>
-            </tr>
-            <tr>
-                <td class="time-slot" data-hora="13">1pm - 2pm</td>
-                <td class="time-slot" data-hora="14">2pm - 3pm</td>
-                <td class="time-slot" data-hora="15">3pm - 4pm</td>
-            </tr>
-            <tr>
-                <td class="time-slot" data-hora="16">4pm - 5pm</td>
-                <td class="time-slot" data-hora="17">5pm - 6pm</td>
-                <td class="time-slot" data-hora="18">6pm - 7pm</td>
-            </tr>
+        <table class="time-table" id="horarios">
+            <!-- Horarios generados dinámicamente -->
         </table>
     </div>
 
@@ -117,33 +108,82 @@
     <script>
         const ADMIN_PASSWORD = "Mario123";
         let selectedSlot = null;
-        
-        document.querySelectorAll('.time-slot').forEach(cell => {
-            cell.addEventListener('click', function() {
-                if (this.classList.contains('booked')) {
-                    const password = prompt('Ingresa la contraseña para cancelar:');
-                    if (password === this.dataset.password || password === ADMIN_PASSWORD) {
-                        this.classList.remove('booked');
-                        this.removeAttribute('data-password');
-                        this.textContent = this.dataset.hora + (this.dataset.hora > 12 ? 'pm' : 'am');
-                    } else {
-                        alert('Contraseña incorrecta');
-                    }
-                    return;
+        let reservas = {};
+
+        // Configurar fecha mínima
+        const fechaInput = document.getElementById('fecha');
+        const hoy = new Date();
+        fechaInput.min = hoy.toISOString().split('T')[0];
+
+        function generarHorarios() {
+            const contenedor = document.getElementById('horarios');
+            contenedor.innerHTML = '';
+            
+            const horas = [10, 11, 12, 13, 14, 15, 16, 17, 18];
+            let fila = document.createElement('tr');
+            
+            horas.forEach((hora, index) => {
+                const celda = document.createElement('td');
+                celda.className = 'time-slot';
+                celda.dataset.hora = hora;
+                celda.textContent = `${hora <= 12 ? hora : hora - 12}${hora < 12 ? 'am' : 'pm'}`;
+                
+                const fechaSeleccionada = document.getElementById('fecha').value;
+                if(reservas[fechaSeleccionada] && reservas[fechaSeleccionada][hora]) {
+                    celda.classList.add('booked');
+                    celda.textContent = `${reservas[fechaSeleccionada][hora].nombre} - ${celda.textContent}`;
+                    celda.dataset.password = reservas[fechaSeleccionada][hora].password;
                 }
                 
-                if (selectedSlot) {
-                    selectedSlot.classList.remove('selected');
-                }
+                celda.addEventListener('click', manejarClickHorario);
                 
-                this.classList.add('selected');
-                selectedSlot = this;
+                fila.appendChild(celda);
+                
+                if ((index + 1) % 3 === 0) {
+                    contenedor.appendChild(fila);
+                    fila = document.createElement('tr');
+                }
             });
+        }
+
+        function manejarClickHorario() {
+            if (this.classList.contains('booked')) {
+                const password = prompt('Ingresa la contraseña para cancelar:');
+                if (password === this.dataset.password || password === ADMIN_PASSWORD) {
+                    const fecha = document.getElementById('fecha').value;
+                    delete reservas[fecha][this.dataset.hora];
+                    generarHorarios();
+                } else {
+                    alert('Contraseña incorrecta');
+                }
+                return;
+            }
+            
+            if (selectedSlot) {
+                selectedSlot.classList.remove('selected');
+            }
+            
+            this.classList.add('selected');
+            selectedSlot = this;
+        }
+
+        fechaInput.addEventListener('change', function() {
+            const fechaSeleccionada = new Date(this.value);
+            const hoy = new Date();
+            
+            if (fechaSeleccionada.setHours(0,0,0,0) < hoy.setHours(0,0,0,0)) {
+                alert('No puedes seleccionar fechas pasadas');
+                this.value = hoy.toISOString().split('T')[0];
+            }
+            
+            document.querySelector('.room').style.display = 'block';
+            generarHorarios();
         });
 
         document.getElementById('reservarBtn').addEventListener('click', function() {
             const nombre = document.getElementById('nombre').value.trim();
             const password = document.getElementById('password').value.trim();
+            const fecha = document.getElementById('fecha').value;
             
             if (!nombre || !password) {
                 alert('Por favor completa todos los campos');
@@ -155,11 +195,14 @@
                 return;
             }
             
-            selectedSlot.dataset.password = password;
-            selectedSlot.classList.remove('selected');
-            selectedSlot.classList.add('booked');
-            selectedSlot.textContent = `${nombre} - ${selectedSlot.textContent}`;
+            if (!reservas[fecha]) reservas[fecha] = {};
             
+            reservas[fecha][selectedSlot.dataset.hora] = {
+                nombre: nombre,
+                password: password
+            };
+            
+            generarHorarios();
             selectedSlot = null;
             document.getElementById('nombre').value = '';
             document.getElementById('password').value = '';
