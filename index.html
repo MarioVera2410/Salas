@@ -2,8 +2,9 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Sistema de Reservas con Contraseña</title>
+    <title>Sistema de Reservas con Admin</title>
     <style>
+        /* Estilos anteriores se mantienen igual */
         body {
             font-family: Arial, sans-serif;
             max-width: 600px;
@@ -82,7 +83,7 @@
     </style>
 </head>
 <body>
-    <h1>Sistema de Reserva con Contraseña</h1>
+    <h1>Reserva Sala Grande</h1>
     
     <div class="input-group">
         <input type="text" id="nombre" placeholder="Ingresa tu nombre">
@@ -92,20 +93,21 @@
     <div class="room">
         <h2 class="room-title">Sala de Juntas Principal</h2>
         <table class="time-table">
+            <!-- Horarios igual que antes -->
             <tr>
-                <td class="time-slot" data-hora="10">10am</td>
-                <td class="time-slot" data-hora="11">11am</td>
-                <td class="time-slot" data-hora="12">12pm</td>
+                <td class="time-slot" data-hora="10">10am - 11am</td>
+                <td class="time-slot" data-hora="11">11am - 12pm</td>
+                <td class="time-slot" data-hora="12">12pm - 1pm</td>
             </tr>
             <tr>
-                <td class="time-slot" data-hora="13">1pm</td>
-                <td class="time-slot" data-hora="14">2pm</td>
-                <td class="time-slot" data-hora="15">3pm</td>
+                <td class="time-slot" data-hora="13">1pm - 2pm</td>
+                <td class="time-slot" data-hora="14">2pm - 3pm</td>
+                <td class="time-slot" data-hora="15">3pm - 4pm</td>
             </tr>
             <tr>
-                <td class="time-slot" data-hora="16">4pm</td>
-                <td class="time-slot" data-hora="17">5pm</td>
-                <td class="time-slot" data-hora="18">6pm</td>
+                <td class="time-slot" data-hora="16">4pm - 5pm</td>
+                <td class="time-slot" data-hora="17">5pm - 6pm</td>
+                <td class="time-slot" data-hora="18">6pm - 7pm</td>
             </tr>
         </table>
     </div>
@@ -113,13 +115,14 @@
     <button id="reservarBtn">Reservar</button>
 
     <script>
+        const ADMIN_PASSWORD = "Mario123";
         let selectedSlot = null;
         
         document.querySelectorAll('.time-slot').forEach(cell => {
             cell.addEventListener('click', function() {
                 if (this.classList.contains('booked')) {
-                    const password = prompt('Ingresa tu contraseña para cancelar la reserva:');
-                    if (password === this.dataset.password) {
+                    const password = prompt('Ingresa la contraseña para cancelar:');
+                    if (password === this.dataset.password || password === ADMIN_PASSWORD) {
                         this.classList.remove('booked');
                         this.removeAttribute('data-password');
                         this.textContent = this.dataset.hora + (this.dataset.hora > 12 ? 'pm' : 'am');
